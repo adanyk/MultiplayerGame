@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: be6a2349160488148a6f38c7fd6c66f4
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - ActionsWindow: {instanceID: 0}
+  - ThrowDicesButton: {instanceID: 0}
+  - BuyWindow: {instanceID: 0}
+  - YesBuyButton: {instanceID: 0}
+  - NoBuyButton: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
