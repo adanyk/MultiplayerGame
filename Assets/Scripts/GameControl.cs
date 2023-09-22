@@ -29,7 +29,7 @@ public class GameControl : MonoBehaviour
     static bool tempTransferingMoney;
 
     // Auction
-    public static int activeBidders, bid;
+    public static int activeBidders, bid, originalPrice;
 
     // Chance and Treasure Chest
     [SerializeField] GameObject[] ChanceAndChest;
@@ -74,6 +74,10 @@ public class GameControl : MonoBehaviour
             players[i].GetComponent<PlayerControl>().myTurn = false;
             PlayerIcons[i].SetActive(true);
             players[i].GetComponent<PlayerControl>().myIndex = i;
+
+            // Give name
+            players[i].GetComponent<PlayerControl>().myName = Names.playerNames[i - 1];
+            playerIcons[i].transform.Find("name").GetComponent<TextMeshProUGUI>().text = Names.playerNames[i - 1];
         }
         occupiedFields = new int[41, 6];
         fieldmarkers = FieldMarkers;
@@ -98,6 +102,7 @@ public class GameControl : MonoBehaviour
         // Auction
         activeBidders = 0;
         bid = 0;
+        originalPrice = 0;
 
         // Chance and Treasue Chest
         ChanceAndChest[0].SetActive(true);
@@ -207,24 +212,19 @@ public class GameControl : MonoBehaviour
             activePlayers.Remove(bankrupt);
             if(activePlayers.Count == 1)    // End of game
             {
-                WindowsControl.winnerMessage.GetComponent<TextMeshProUGUI>().text = "The winner is Player " + activePlayers[0] + ".";
-                WindowsControl.highscore.GetComponent<TextMeshProUGUI>().text = "1. Player " + activePlayers[0] + " - " + MoneyText(players[activePlayers[0]].GetComponent<PlayerControl>().worth) + "\n";
+                var winner = players[activePlayers[0]].GetComponent<PlayerControl>();
+                WindowsControl.winnerMessage.GetComponent<TextMeshProUGUI>().text = "The winner is  " + winner.myName + ".";
+                WindowsControl.highscore.GetComponent<TextMeshProUGUI>().text = "1. " + winner.myName + " - " + MoneyText(winner.worth) + "\n";
                 WindowsControl.gameOverWindow.SetActive(true);
                 WindowsControl.gameOverWindowOpen = true;
                 whoseTurn = turnQ.Dequeue(); // The last player turn - only to click OK in game over window
             }
-            else if(bankrupt == whoseTurn)
-            {
-                whoseTurn = turnQ.Dequeue();
-            }
+            else if(bankrupt == whoseTurn) whoseTurn = turnQ.Dequeue();
             else
             {
                 for(int i = 0; i <= activePlayers.Count; i++)
                 {
-                    if(whoseTurn != bankrupt)
-                    {
-                        turnQ.Enqueue(whoseTurn);
-                    }
+                    if(whoseTurn != bankrupt) turnQ.Enqueue(whoseTurn);
                     whoseTurn = turnQ.Dequeue();
                 }
             }

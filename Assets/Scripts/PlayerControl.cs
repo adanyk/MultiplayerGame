@@ -45,6 +45,14 @@ public class PlayerControl : MonoBehaviour
 
     // Auction
     public bool stillInBidding, biddingWinner, settingUpBids;
+
+
+    // Name and bot
+    public string myName;
+    public bool IAmABot, botIsBuyingHouses, botIsSelling, botIsMortgaging, botIsUnmortgaging, botIsInBidding;
+    public List<int> housesToBuy, deedsToSell, deedsToMortgage, housesToSellList, colorDeedsToMortgage, deedsToUnmortgage;
+    public Dictionary<int, int> housesToSellDict;
+    public int myBid;
     
     
 
@@ -113,6 +121,16 @@ public class PlayerControl : MonoBehaviour
         stillInBidding = false;
         biddingWinner = false;
         settingUpBids = false;
+
+
+        // Name and bot
+        IAmABot = myName == "bot";
+        botIsBuyingHouses = false;
+        botIsSelling = false;
+        botIsMortgaging = false;
+        botIsUnmortgaging = false;
+        myBid = -1;
+        botIsInBidding = false;
     }
 
     // Update is called once per frame
@@ -120,17 +138,256 @@ public class PlayerControl : MonoBehaviour
     {
 /********************************************************************************************************************************************************
 
+                BOT BEHAVIOUR
+
+*********************************************************************************************************************************************************/
+        if (IAmABot)
+        {
+            if (myTurn)
+            {
+                // Choose action
+                if (WindowsControl.actionsWindowOpen)
+                {
+                    if (WindowsControl.breakFreeObject.activeSelf) WindowsControl.breakFree = true;
+                    else if (WindowsControl.bailObject.activeSelf && money >= 50) WindowsControl.bailMeOut = true;
+                    else if (WindowsControl.buyHousesObject.activeSelf) WindowsControl.buyHouses = true;
+                    else if (WindowsControl.unmortgageObject.activeSelf) WindowsControl.unmortgage = true;
+                    else WindowsControl.throwDices = true;
+
+                    // Prevent from further actions in here
+                    WindowsControl.actionsWindowOpen = false;
+                }
+
+                // Buy deed or run auction
+                else if (WindowsControl.buyWindowOpen)
+                {
+                    if (WindowsControl.yesBuyButton.interactable) WindowsControl.yesBuy = true;
+                    else WindowsControl.noBuy = true;
+
+                    // Prevent from further actions in here
+                    WindowsControl.buyWindowOpen = false;
+                }
+
+                // Chance, chest
+                else if (WindowsControl.chanceChestObjects[0].activeSelf) WindowsControl.chanceReading = true;
+                else if (WindowsControl.chanceChestObjects[1].activeSelf) WindowsControl.chestReading = true;
+                else if (WindowsControl.chanceChestObjects[2].activeSelf) WindowsControl.chanceOK = true; 
+                else if (WindowsControl.chanceChestObjects[3].activeSelf) WindowsControl.chestOK = true;
+                else if (WindowsControl.chestWindows[5].activeSelf) WindowsControl.takeChance = true;
+
+                // Choose which free card to use
+                else if (WindowsControl.freeCardsWindow.activeSelf) WindowsControl.freeChanceB = true;
+
+                // Buy houses
+                else if (WindowsControl.buyHousesWindowOpen)
+                {
+                    // Create a list of houses to buy
+                    if (!botIsBuyingHouses)
+                    {
+                        housesToBuy = new();
+                        for (int i = 2; i <= 40; i++) if (WindowsControl.houseObjects[i].activeSelf) housesToBuy.Add(i);
+                        botIsBuyingHouses = true;
+                        tempRest = money;
+                    }
+                    // Buy houses one by one
+                    else
+                    {
+                        // Buy houses as long as you can
+                        if (housesToBuy.Count > 0)
+                        {
+                            var currentToBuy = housesToBuy[0];
+                            housesToBuy.RemoveAt(0);
+                            // Buy a house if you can afford it
+                            if (GameControl.titleDeedCards[currentToBuy].housePrice <= tempRest)
+                            {
+                                WindowsControl.housebools[currentToBuy] = true;
+                                WindowsControl.AHouse = true;
+                            }
+                            // Otherwise, no more houses to buy
+                            else housesToBuy = new();
+                        }
+                        // Otherwise, confirm the purchase
+                        else
+                        {
+                            botIsBuyingHouses = false;
+                            WindowsControl.confirmBuyHouses = true;
+
+                            // Prevent from further actions in here
+                            WindowsControl.buyHousesWindowOpen = false;
+                        }
+                    }
+                }
+
+                // Money shortage
+                else if (WindowsControl.shortageWindowOpen)
+                {
+                    if (povertyON)
+                    {
+                        // Create a list of deeds to sell
+                        if (!botIsSelling)
+                        {
+                            deedsToSell = new();
+                            for (int i = 2; i <= 40; i++) if (GameControl.titleDeedCardsOwners[i] == -myIndex) deedsToSell.Add(i);
+                            botIsSelling = true;
+                            tempRest = money - tempToPay;
+                        }
+                        // Sell deeds one by one
+                        else
+                        {
+                            // Sell deeds as long as you need to
+                            if (tempRest < 0)
+                            {
+                                var currentToSell = deedsToSell[0];
+                                deedsToSell.RemoveAt(0);
+                                WindowsControl.mortgagebools[currentToSell] = true;
+                                WindowsControl.mortgaging = true;
+                            }
+                            // Otherwise, confirm the purchase
+                            else
+                            {
+                                botIsSelling = false;
+                                WindowsControl.confirmShortage = true;
+
+                                // Prevent from further actions in here
+                                WindowsControl.shortageWindowOpen = false;
+                            }
+                        }
+                    }
+                    else if (shortageON)
+                    {
+                        // Create lists of deeds to mortgage and houses to sell
+                        if (!botIsMortgaging)
+                        {
+                            deedsToMortgage = new();
+                            housesToSellList = new();
+                            housesToSellDict = new();
+                            colorDeedsToMortgage = new();
+                            for (int i = 2; i <= 40; i++) if (GameControl.titleDeedCardsOwners[i] == myIndex)
+                            {
+                                if (GameControl.titleDeedCards[i].numHouses > 0)
+                                {
+                                    housesToSellDict[i] = GameControl.titleDeedCards[i].numHouses;
+                                    housesToSellList.Add(i);
+                                }
+                                
+                                if (WindowsControl.deedObjects[i].activeSelf) deedsToMortgage.Add(i);
+                                else colorDeedsToMortgage.Add(i); // (mortgage button not active due to houses on the color)
+                            }
+                            botIsMortgaging = true;
+                            tempRest = money - tempToPay;
+                        }
+                        // Mortgage deeds and sell houses one by one
+                        else
+                        {
+                            // Mortgage deeds and sell houses as long as you need to
+                            if (tempRest < 0)
+                            {
+                                // First, try only mortgaging
+                                if (deedsToMortgage.Count > 0)
+                                {
+                                    var currentToMortgage = deedsToMortgage[0];
+                                    deedsToMortgage.RemoveAt(0);
+                                    WindowsControl.mortgagebools[currentToMortgage] = true;
+                                    WindowsControl.mortgaging = true;
+                                }
+                                // Otherwise, sell houses
+                                else if (housesToSellList.Count > 0)
+                                {
+                                    var currentToSell = housesToSellList[0];
+                                    if (--housesToSellDict[currentToSell] == 0) housesToSellList.RemoveAt(0);
+                                    WindowsControl.housebools[currentToSell] = true;
+                                    WindowsControl.mortgaging = true;
+                                }
+                                // If no more houses to sell, mortgage colors
+                                else deedsToMortgage = colorDeedsToMortgage;
+                            }
+                            // Otherwise, confirm the purchase
+                            else
+                            {
+                                botIsMortgaging = false;
+                                WindowsControl.confirmShortage = true;
+
+                                // Prevent from further actions in here
+                                WindowsControl.shortageWindowOpen = false;
+                            }
+                        }
+                    }
+                }
+
+                // Unmortgage
+                else if (WindowsControl.unmortgageWindowOpen)
+                {
+                    // Create a list of deeds to unmortgage
+                    if (!botIsUnmortgaging)
+                    {
+                        deedsToUnmortgage = new();
+                        for (int i = 2; i <= 40; i++) if (GameControl.titleDeedCardsOwners[i] == -myIndex) deedsToUnmortgage.Add(i);
+                        botIsUnmortgaging = true;
+                        tempRest = money;
+                    }
+                    // Unmortgage deeds one by one
+                    else
+                    {
+                        // Unmortgage deeds as long as there are any (and...)
+                        if (deedsToUnmortgage.Count > 0)
+                        {
+                            var currentToUnmortgage = deedsToUnmortgage[0];
+                            // (... and) as long as you can afford it
+                            if (GameControl.titleDeedCards[currentToUnmortgage].buyPrice / 2 * 1.1f + 1 < tempRest)
+                            {
+                                deedsToUnmortgage.RemoveAt(0);
+                                WindowsControl.mortgagebools[currentToUnmortgage] = true;
+                                WindowsControl.mortgaging = true;
+                            }
+                            else deedsToUnmortgage = new();
+                        }
+                        
+                        // Otherwise, confirm the purchase
+                        else
+                        {
+                            botIsUnmortgaging = false;
+                            WindowsControl.confirmUnmortgage = true;
+
+                            // Prevent from further actions in here
+                            WindowsControl.unmortgageWindowOpen = false;
+                        }
+                    }
+                }
+            }
+
+            // Auction
+            else if (WindowsControl.auctionWindowOpen && botIsInBidding)
+            {
+                // Buy, if you won
+                if (WindowsControl.biddersAndBidObjects[(myIndex-1), 7].activeSelf) WindowsControl.bidbools[(myIndex-1), 6] = true;
+                // Or bid, if you can (and do not lead)
+                else if (money > GameControl.bid && stillInBidding && myBid < GameControl.bid && GameControl.originalPrice * 1.5f > GameControl.bid)
+                {
+                    if (money - GameControl.bid >= 10) { WindowsControl.bidbools[(myIndex-1), 2] = true; myBid = GameControl.bid + 10; }
+                    else if (money - GameControl.bid >= 5) { WindowsControl.bidbools[(myIndex-1), 1] = true; myBid = GameControl.bid + 5; }
+                    else if (money - GameControl.bid >= 1) { WindowsControl.bidbools[(myIndex-1), 0] = true; myBid = GameControl.bid + 1; }
+                }
+                // Or pass, if the bid is too high (and you do not lead)
+                else if (myBid != GameControl.bid && (money < GameControl.bid || GameControl.originalPrice * 1.5f <= GameControl.bid))
+                {
+                    botIsInBidding = false;
+                    WindowsControl.bidbools[(myIndex-1), 5] = true;
+                }
+            }
+        }
+
+
+
+
+
+
+/********************************************************************************************************************************************************
+
                 EVENTS BEYOND PLAYER'S TURN
 
 *********************************************************************************************************************************************************/
-        if(addingMoney)
-        {
-            GoAddMoney();
-        }
-        if(subingMoney)
-        {
-            GoSubMoney();
-        }
+        if(addingMoney) GoAddMoney();
+        if(subingMoney) GoSubMoney();
         if(WindowsControl.auctionWindowOpen)
         {
             if(stillInBidding)
@@ -164,13 +421,9 @@ public class PlayerControl : MonoBehaviour
                             WindowsControl.bidbools[(myIndex-1), i] = false;
                             for(int j = 1; j <= GameControl.activePlayers.Count; j++) // Make sure the previous highest bidder gets back his "Pass" button
                             {
-                                if(GameControl.players[j].GetComponent<PlayerControl>().stillInBidding)
-                                {
-                                    //WindowsControl.bidButtons[(j-1), 5].enabled = true;
-                                    WindowsControl.bidButtons[(j-1), 5].interactable = true;
-                                }
+                                if(GameControl.players[j].GetComponent<PlayerControl>().stillInBidding) WindowsControl.bidButtons[(j-1), 5].interactable = true;
                             }
-                            //WindowsControl.bidButtons[(myIndex-1), 5].enabled = false; // Take away Player's "Pass" button
+                            // Take away Player's "Pass" button
                             WindowsControl.bidButtons[(myIndex-1), 5].interactable = false;
                             GameControl.bid += WindowsControl.bides[i];
                             WindowsControl.highestBidder[2].GetComponent<TextMeshProUGUI>().text = GameControl.MoneyText(GameControl.bid);
@@ -269,6 +522,9 @@ public class PlayerControl : MonoBehaviour
         }
         else if(povertyON)
         {
+            // Change window title to indicate selling deeds
+            WindowsControl.shortageWindow.transform.Find("title").GetComponent<TextMeshProUGUI>().text = "Sell deeds";
+
             // Selling deed (name "mortgage" (in its different forms) is borrowed for convenience's sake and will always mean "sell deed" here)
             if(WindowsControl.mortgaging)                                   // 1. A deed button clicked
             {
@@ -334,25 +590,15 @@ public class PlayerControl : MonoBehaviour
                 WindowsControl.CloseShortageWindow();
 
                 // Payer money update
-                if(money < tempRest)
-                {
-                    AddMoney(tempRest - money);
-                }
-                else if(money > tempRest)
-                {
-                    SubMoney(money - tempRest);
-                }
+                if(money < tempRest) AddMoney(tempRest - money);
+                else if(money > tempRest) SubMoney(money - tempRest);
                 money = tempRest;
                 capitalWithoutSelling = tempRest;
-                if(shortageReason == "Auction") // Additional change in capitalWS and capital
-                {
-                    capitalWithoutSelling += GameControl.titleDeedCards[GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().waypointIndex + 1].buyPrice/2;
-                    capital = capital - tempToPay + GameControl.titleDeedCards[GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().waypointIndex + 1].buyPrice;
-                }
-                else if(shortageReason == "BuyDeed") // Additional change in capitalWS
-                {
-                    capitalWithoutSelling += GameControl.titleDeedCards[GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().waypointIndex + 1].buyPrice/2;
-                }
+                capital -= tempToPay;
+                    // Additional changes for some shortage reasons
+                    var buyPrice = GameControl.titleDeedCards[GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().waypointIndex + 1].buyPrice;
+                    if(shortageReason == "Auction")  { capitalWithoutSelling += buyPrice/2; capital += buyPrice; }
+                    else if(shortageReason == "BuyDeed") capitalWithoutSelling += buyPrice/2;
                 worth = capital;
 
                 // Payee money update
@@ -382,7 +628,6 @@ public class PlayerControl : MonoBehaviour
                 {
                     GameControl.fieldmarkers[index + 1].SetActive(true);
                     GameControl.fieldmarkers[index + 1].GetComponent<SpriteRenderer>().color = GameControl.players[myIndex].GetComponent<SpriteRenderer>().color;
-                    //Debug.Log("Player buys");
                     GameControl.titleDeedCardsOwners[index + 1] = GameControl.whoseTurn;
                     GameControl.ColorUpdate("BuyNewDeed", index + 1, myIndex);
                 }
@@ -390,7 +635,6 @@ public class PlayerControl : MonoBehaviour
                 {
                     GameControl.fieldmarkers[GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().index + 1].SetActive(true);
                     GameControl.fieldmarkers[GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().index + 1].GetComponent<SpriteRenderer>().color = GameControl.players[myIndex].GetComponent<SpriteRenderer>().color;
-                    //Debug.Log("Player buys");
                     GameControl.titleDeedCardsOwners[GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().waypointIndex + 1] = myIndex;
                     GameControl.ColorUpdate("BuyNewDeed", GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().waypointIndex + 1, myIndex);
                     Debug.Log("Player " + (myIndex) + ": nextTurn() - line: 388");
@@ -403,6 +647,9 @@ public class PlayerControl : MonoBehaviour
                 }
                 shortageReason = "";
                 povertyON = false;
+
+                // Change window title back
+                WindowsControl.shortageWindow.transform.Find("title").GetComponent<TextMeshProUGUI>().text = "Mortgage / Sell houses";
             }
         }
         else if(shortageON)
@@ -715,11 +962,11 @@ public class PlayerControl : MonoBehaviour
 
                             var worthOrder = GameControl.SortActivePlayers();
 
-                            WindowsControl.winnerMessage.GetComponent<TextMeshProUGUI>().text = "The winner is Player " + worthOrder[0] + ".";
+                            WindowsControl.winnerMessage.GetComponent<TextMeshProUGUI>().text = "The winner is " + GameControl.players[worthOrder[0]].GetComponent<PlayerControl>().myName + ".";
                             WindowsControl.highscore.GetComponent<TextMeshProUGUI>().text = "";
                             for(int i = 0; i < worthOrder.Count; i++)
                             {
-                                WindowsControl.highscore.GetComponent<TextMeshProUGUI>().text += (i + 1) + ". Player " + worthOrder[i] + " - " + GameControl.MoneyText(GameControl.players[worthOrder[i]].GetComponent<PlayerControl>().worth) + "\n";
+                                WindowsControl.highscore.GetComponent<TextMeshProUGUI>().text += (i + 1) + ". " + GameControl.players[worthOrder[i]].GetComponent<PlayerControl>().myName + " - " + GameControl.MoneyText(GameControl.players[worthOrder[i]].GetComponent<PlayerControl>().worth) + "\n";
                             }
                             WindowsControl.gameOverWindow.SetActive(true);
                             WindowsControl.gameOverWindowOpen = true;
@@ -1200,18 +1447,9 @@ public class PlayerControl : MonoBehaviour
                     // Close Actions Window
                     WindowsControl.CloseActionsWindow();
 
-                    if(secondRoll)
-                    {
-                        SecondRoll();
-                    }
-                    else if(inJailLeft > 0)
-                    {
-                        JailRoll();
-                    }
-                    else
-                    {
-                        FirstRoll();
-                    }
+                    if (secondRoll) SecondRoll();
+                    else if (inJailLeft > 0) JailRoll();
+                    else FirstRoll();
                 }
 
                     // Bailing out
@@ -1305,7 +1543,6 @@ public class PlayerControl : MonoBehaviour
                     }
                     WindowsControl.buyHouses = false;
                     WindowsControl.CloseActionsWindow();
-                    WindowsControl.OpenBuyHousesWindow();
                     if(deedsUnmortgaged)
                     {
                         WindowsControl.OpenHouseButtons(true); // Buying after unmortgaging - prevent newly unmortgaged color from upgrading
@@ -1317,6 +1554,7 @@ public class PlayerControl : MonoBehaviour
                     WindowsControl.cash.GetComponent<TextMeshProUGUI>().text = GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().moneyText;
                     WindowsControl.price.GetComponent<TextMeshProUGUI>().text = "0";
                     WindowsControl.rest.GetComponent<TextMeshProUGUI>().text = GameControl.players[GameControl.whoseTurn].GetComponent<PlayerControl>().moneyText;
+                    WindowsControl.OpenBuyHousesWindow();
                     buyingHouses = true;
                 }
                     // Unmortgaging
@@ -1659,6 +1897,7 @@ public class PlayerControl : MonoBehaviour
             {
                 Debug.Log("Buying opportunity: " + (waypointIndex + 1));
                 buyingOpportunity = true;
+                GameControl.originalPrice = GameControl.titleDeedCards[waypointIndex + 1].buyPrice;
                 moving = false;
             }
             else
@@ -1839,6 +2078,7 @@ public class PlayerControl : MonoBehaviour
 
     public void Shortage(int toPay, int payee=0)
     {
+        Debug.Log("Shortage line 2100");
         if(toPay > capitalWithoutSelling)
         {
             tempSellList = "";

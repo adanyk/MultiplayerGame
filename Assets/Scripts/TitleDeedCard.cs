@@ -157,13 +157,3 @@ public class TitleDeedCard
         return 0;
     }
 }
-
-/*
-public class Chance
-{
-    //funkcje
-}
-public class Treasure
-{
-    //funkcje
-}*/

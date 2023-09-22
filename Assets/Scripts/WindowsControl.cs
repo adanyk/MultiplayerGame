@@ -99,9 +99,6 @@ public class WindowsControl : MonoBehaviour
     public static GameObject sum;
     public static GameObject toPay;
     public static GameObject left;
-    public static GameObject shortageTitle;
-    [SerializeField] GameObject ConfirmShortageObject;
-    public static GameObject confirmShortageObject;
     [SerializeField] Button ConfirmShortageButton;
     public static Button confirmShortageButton;
 
@@ -180,7 +177,8 @@ public class WindowsControl : MonoBehaviour
     public static List<bool> housebools;
     public static List<bool> mortgagebools;
     public static bool[,] bidbools;
-    
+
+
 
     void Start()
     {
@@ -273,7 +271,6 @@ public class WindowsControl : MonoBehaviour
         sum = ShortageTexts[1];
         toPay = ShortageTexts[2];
         left = ShortageTexts[3];
-        shortageTitle = ShortageTexts[4];
         mortgagebools = new List<bool>();
         for(int i = 0; i < 41; i++)
         {
@@ -923,13 +920,8 @@ public class WindowsControl : MonoBehaviour
         shortageWindowOpen = true;
         if(!poverty)
         {
-            shortageTitle.GetComponent<TextMeshProUGUI>().text = "Mortgage / Sell houses";
             OpenSellHouseButtons(player);
             OpenDeedButtons(player);
-        }
-        else
-        {
-            shortageTitle.GetComponent<TextMeshProUGUI>().text = "Sell title deed cards";
         }
     }
     public static void CloseShortageWindow()
@@ -1280,6 +1272,8 @@ public class WindowsControl : MonoBehaviour
         for(int i = 0; i < GameControl.activePlayers.Count; i++)
         {
             GameControl.players[GameControl.activePlayers[i]].GetComponent<PlayerControl>().settingUpBids = true;
+            GameControl.players[GameControl.activePlayers[i]].GetComponent<PlayerControl>().myBid = -1;
+            GameControl.players[GameControl.activePlayers[i]].GetComponent<PlayerControl>().botIsInBidding = true;
         }
         auctionWindow.SetActive(true);
         auctionWindowOpen = true;

@@ -8,7 +8,7 @@ public class GameStart : MonoBehaviour
     // number of players
     [SerializeField] public Button[] NumberOfPlayersButtons;
     [SerializeField] public GameObject StartWindow;
-    [SerializeField] public GameObject GameControlObject;
+    [SerializeField] public GameObject Names;
     public static bool numberOfPlayersChosen;
     public static int numberOfPlayers;
 
@@ -37,7 +37,7 @@ public class GameStart : MonoBehaviour
         // begin game
         else
         {
-            GameControlObject.SetActive(true);
+            Names.SetActive(true);
             StartWindow.SetActive(false);
             this.gameObject.SetActive(false);
         }
