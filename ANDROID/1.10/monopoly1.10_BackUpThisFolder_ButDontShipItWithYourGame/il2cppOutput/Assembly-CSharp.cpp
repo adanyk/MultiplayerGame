@@ -4940,8 +4940,8 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void GameControl_Start_m1B81A3A747085E94CC896
 	RuntimeObject* G_B31_1 = NULL;
 	GameControl_t949119569FC9ECF26C6D35BA6DA42D3C3254AB1F* G_B31_2 = NULL;
 	{
-		// botWaitSeconds = 0f; //1f
-		((GameControl_t949119569FC9ECF26C6D35BA6DA42D3C3254AB1F_StaticFields*)il2cpp_codegen_static_fields_for(GameControl_t949119569FC9ECF26C6D35BA6DA42D3C3254AB1F_il2cpp_TypeInfo_var))->___botWaitSeconds_43 = (0.0f);
+		// botWaitSeconds = 1f; //1f
+		((GameControl_t949119569FC9ECF26C6D35BA6DA42D3C3254AB1F_StaticFields*)il2cpp_codegen_static_fields_for(GameControl_t949119569FC9ECF26C6D35BA6DA42D3C3254AB1F_il2cpp_TypeInfo_var))->___botWaitSeconds_43 = (1.0f);
 		// speed = 20; //20
 		((GameControl_t949119569FC9ECF26C6D35BA6DA42D3C3254AB1F_StaticFields*)il2cpp_codegen_static_fields_for(GameControl_t949119569FC9ECF26C6D35BA6DA42D3C3254AB1F_il2cpp_TypeInfo_var))->___speed_5 = (20.0f);
 		// step = speed * Time.deltaTime;
